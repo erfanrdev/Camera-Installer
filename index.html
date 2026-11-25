@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>دستیار نصاب دوربین</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#e9eef0;--surf:#fff;--ink:#14262e;--mut:#5b6f78;--line:#cdd8dd;--acc:#e8590c;--teal:#0f8c96;--on:#fff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10191d;--surf:#18252b;--ink:#e6eef1;--mut:#93a7b0;--line:#2c3d45}}
+:root[data-theme="dark"]{--bg:#10191d;--surf:#18252b;--ink:#e6eef1;--mut:#93a7b0;--line:#2c3d45}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.6 Vazirmatn,Tahoma,"Segoe UI",sans-serif}
+header{padding:14px 16px 6px}
+h1{margin:0;font-size:22px;font-weight:800}
+header p{margin:0;color:var(--mut);font-size:13px}
+main{max-width:1100px;margin:0 auto;padding:0 12px 40px;display:grid;gap:12px}
+.card{background:var(--surf);border:1px solid var(--line);border-radius:10px;padding:12px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:end}
+label{display:grid;gap:2px;font-size:12px;color:var(--mut)}
+input,select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-height:40px}
+input{width:100%;min-width:0}
+.num{width:84px}
+.wide{flex:1;min-width:140px}
+button{cursor:pointer;background:var(--surf)}
+button.pri{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+button.del{color:#c92a2a;border-color:#c92a2a}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--teal);outline-offset:1px}
+#stage{padding:0;overflow:hidden}
+canvas{display:block;width:100%;height:58vh;min-height:320px;touch-action:none;background:#f3f6f7}
+.hint{font-size:12px;color:var(--mut);padding:8px 12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{text-align:right;line-height:1.35}
+.chips small{display:block;color:var(--mut);font-size:11px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{color:var(--mut);font-weight:600}
+h2{margin:0 0 8px;font-size:15px;font-weight:800}
+.sum{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.sum span{background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:13px}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;padding:12px;z-index:9}
+#modal.on{display:flex}
+#modal .box{background:var(--surf);border-radius:12px;max-width:560px;width:100%;max-height:94vh;overflow:auto;padding:12px;display:grid;gap:10px}
+#modal img{width:100%;border-radius:8px;border:1px solid var(--line)}
+</style>
+</head>
+<body>
+<header><h1>دستیار نصاب دوربین</h1><p>پلان را بکشید، دوربین‌ها را بچینید و خروجی را برای مشتری بفرستید.</p></header>
+<main>
+ <section class="card">
+  <div class="row">
+   <label class="wide">عنوان پروژه<input id="title" value="مغازه پوشاک"></label>
+   <label class="wide">نام مشتری<input id="client" placeholder="مثلاً آقای رضایی"></label>
+  </div>
+  <div class="row" style="margin-top:8px">
+   <label>عرض (متر)<input class="num" id="rw" type="number" min="1" step="0.5" value="6" inputmode="decimal"></label>
+   <label>طول (متر)<input class="num" id="rh" type="number" min="1" step="0.5" value="12" inputmode="decimal"></label>
+   <button class="pri" id="mk">ساخت پلان</button>
+   <button id="reset">پاک‌کردن دوربین‌ها</button>
+  </div>
+ </section>
+
+ <section class="card" id="stage">
+  <canvas id="cv" aria-label="پلان محیط"></canvas>
+  <div class="hint" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">جزئیات تصویر با فاصله:
+   <span style="background:rgba(15,140,150,.6);color:#fff;padding:1px 8px;border-radius:6px">شناسایی چهره</span>
+   <span style="background:rgba(15,140,150,.44);color:#fff;padding:1px 8px;border-radius:6px">تشخیص</span>
+   <span style="background:rgba(15,140,150,.3);padding:1px 8px;border-radius:6px">مشاهده</span>
+   <span style="background:rgba(15,140,150,.16);padding:1px 8px;border-radius:6px">کشف حرکت</span>
+   (پررنگ‌تر = جزئیات بیشتر)</div>
+  <div class="hint">گوشه‌های دیوار را بکشید. روی دیوار دو بار بزنید تا گوشه اضافه شود؛ روی گوشه دو بار بزنید تا حذف شود. دایره نارنجی را برای چرخاندن جهت دید بکشید.</div>
+ </section>
+
+ <section class="card">
+  <h2>افزودن دوربین</h2>
+  <div class="chips" id="presets"></div>
+ </section>
+
+ <section class="card" id="editor"></section>
+
+ <section class="card">
+  <h2>خلاصه فنی</h2>
+  <div class="sum" id="sum"></div>
+  <div class="wrap"><table><thead><tr><th>برچسب</th><th>نوع</th><th>مگاپیکسل</th><th>برد</th><th>زاویه دید</th><th>موقعیت</th><th>توضیح</th><th>ناحیه‌های جزئیات</th></tr></thead><tbody id="tb"></tbody></table></div>
+  <div class="row" style="margin-top:10px"><button class="pri" id="exp">ساخت تصویر برای ارسال</button></div>
+ </section>
+</main>
+
+<div id="modal"><div class="box">
+ <b>خروجی آماده است</b>
+ <img id="outimg" alt="خروجی پلان">
+ <small style="color:var(--mut)">روی تصویر نگه دارید و «ذخیره» یا «اشتراک‌گذاری» را بزنید، یا از دکمه زیر استفاده کنید.</small>
+ <div class="row"><button class="pri" id="share">ارسال / اشتراک‌گذاری</button><button id="copy">کپی تصویر</button><button id="close">بستن</button></div>
+ <div id="msg" role="status" style="font-size:13px;color:var(--acc);min-height:20px"></div>
+</div></div>
+
+<script>
+(function(){
+var TYPES={bullet:'بولت',dome:'دام',turret:'تارت',ptz:'PTZ'};
+var PRESETS=[
+ {name:'بولت ۵ مگاپیکسل',type:'bullet',mp:5,range:30,fov:90},
+ {name:'دام ۲ مگاپیکسل',type:'dome',mp:2,range:20,fov:110},
+ {name:'تارت ۴ مگاپیکسل',type:'turret',mp:4,range:25,fov:100},
+ {name:'PTZ ۲ مگاپیکسل',type:'ptz',mp:2,range:60,fov:60}];
+var S={pts:[[0,0],[6,0],[6,12],[0,12]],cams:[],sel:null,n:1};
+try{var sv=localStorage.getItem('cam-planner');if(sv){var o=JSON.parse(sv);if(o&&o.pts&&o.cams){S=o}}}catch(e){}
+var $=function(i){return document.getElementById(i)};
+var fa=function(n){return Number(n).toLocaleString('fa-IR',{maximumFractionDigits:1})};
+var cv=$('cv'),ctx=cv.getContext('2d'),V={s:1,ox:0,oy:0},W=0,H=0;
+
+function save(){try{localStorage.setItem('cam-planner',JSON.stringify(S))}catch(e){}}
+function bbox(){var a=S.pts.map(function(p){return p[0]}),b=S.pts.map(function(p){return p[1]});
+ return{x0:Math.min.apply(0,a),x1:Math.max.apply(0,a),y0:Math.min.apply(0,b),y1:Math.max.apply(0,b)}}
+function fit(w,h){var b=bbox(),bw=Math.max(b.x1-b.x0,.5),bh=Math.max(b.y1-b.y0,.5),pad=48;
+ var s=Math.min((w-pad*2)/bw,(h-pad*2)/bh);
+ return{s:s,ox:(w-bw*s)/2-b.x0*s,oy:(h-bh*s)/2-b.y0*s}}
+function sx(v,x){return v.ox+x*v.s}function sy(v,y){return v.oy+y*v.s}
+function dir(c){var r=c.rot*Math.PI/180;return[Math.sin(r),-Math.cos(r)]}
+var ZN=['شناسایی چهره','تشخیص','مشاهده','کشف حرکت'],PPM=[250,125,62.5];
+function autoZ(c){var w=Math.sqrt(Math.max(c.mp,.1)*1e6*16/9),t=2*Math.tan((c.fov||1)*Math.PI/360);return PPM.map(function(p){return w/(p*t)})}
+function zones(c){var au=autoZ(c),m=[c.z1,c.z2,c.z3],r=[],prev=0;
+ for(var i=0;i<3;i++){var d=m[i]>0?m[i]:au[i];d=Math.min(Math.max(d,prev),c.range);r.push(d);prev=d}
+ r.push(c.range);return r}
+function zoneText(c){var Z=zones(c);return ZN.map(function(n,i){return n+' تا '+fa(Z[i])+' م'}).join(' • ')}
+
+function draw(g,v,w,h,exp){
+ g.fillStyle='#f3f6f7';g.fillRect(0,0,w,h);
+ var b=bbox();
+ g.lineWidth=1;
+ for(var x=Math.floor(b.x0)-1;x<=Math.ceil(b.x1)+1;x++){g.strokeStyle=x%5?'#dde5e8':'#c3d0d5';g.beginPath();g.moveTo(sx(v,x),0);g.lineTo(sx(v,x),h);g.stroke()}
+ for(var y=Math.floor(b.y0)-1;y<=Math.ceil(b.y1)+1;y++){g.strokeStyle=y%5?'#dde5e8':'#c3d0d5';g.beginPath();g.moveTo(0,sy(v,y));g.lineTo(w,sy(v,y));g.stroke()}
+ function path(){g.beginPath();S.pts.forEach(function(p,i){var X=sx(v,p[0]),Y=sy(v,p[1]);i?g.lineTo(X,Y):g.moveTo(X,Y)});g.closePath()}
+ path();g.fillStyle='#fff';g.fill();
+ S.cams.forEach(function(c,i){
+  g.save();path();g.clip();
+  var a=Math.atan2(dir(c)[1],dir(c)[0]),f=c.fov*Math.PI/360,on=c.id===S.sel;
+  var Z=zones(c),X=sx(v,c.x),Y=sy(v,c.y),A=[.5,.34,.22,.12],prev=0;
+  Z.forEach(function(d,i){g.beginPath();g.arc(X,Y,d*v.s,a-f,a+f);g.arc(X,Y,prev*v.s,a+f,a-f,true);g.closePath();
+   g.fillStyle='rgba(15,140,150,'+(on?A[i]+.1:A[i])+')';g.fill();g.strokeStyle='rgba(15,100,110,.45)';g.lineWidth=1;g.stroke();prev=d});
+  g.beginPath();g.moveTo(X,Y);g.arc(X,Y,c.range*v.s,a-f,a+f);g.closePath();g.strokeStyle='rgba(15,140,150,.9)';g.lineWidth=1.5;g.stroke();g.restore()});
+ path();g.strokeStyle='#14262e';g.lineWidth=5;g.lineJoin='round';g.stroke();
+ g.font='600 12px Vazirmatn,Tahoma,sans-serif';g.textAlign='center';g.textBaseline='middle';g.direction='ltr';
+ S.pts.forEach(function(p,i){var q=S.pts[(i+1)%S.pts.length],L=Math.hypot(q[0]-p[0],q[1]-p[1]);if(L<.3)return;
+  var mx=sx(v,(p[0]+q[0])/2),my=sy(v,(p[1]+q[1])/2),t=fa(L)+' م';
+  g.lineWidth=4;g.strokeStyle='#fff';g.strokeText(t,mx,my);g.fillStyle='#14262e';g.fillText(t,mx,my)});
+ if(!exp)S.pts.forEach(function(p){g.fillStyle='#14262e';g.fillRect(sx(v,p[0])-6,sy(v,p[1])-6,12,12)});
+ S.cams.forEach(function(c){
+  var X=sx(v,c.x),Y=sy(v,c.y),d=dir(c),on=c.id===S.sel;
+  if(on&&!exp){g.strokeStyle='#e8590c';g.lineWidth=2;g.beginPath();g.moveTo(X,Y);g.lineTo(X+d[0]*34,Y+d[1]*34);g.stroke();
+   g.fillStyle='#fff';g.beginPath();g.arc(X+d[0]*34,Y+d[1]*34,8,0,7);g.fill();g.stroke()}
+  g.fillStyle=on?'#e8590c':'#0f8c96';g.beginPath();g.arc(X,Y,10,0,7);g.fill();
+  g.lineWidth=2;g.strokeStyle='#fff';g.stroke();
+  g.fillStyle='#fff';g.beginPath();g.moveTo(X+d[0]*8,Y+d[1]*8);g.lineTo(X-d[1]*4,Y+d[0]*4);g.lineTo(X+d[1]*4,Y-d[0]*4);g.fill();
+  g.font='800 13px Vazirmatn,Tahoma,sans-serif';g.lineWidth=4;g.strokeStyle='#fff';g.strokeText(c.label,X,Y-20);g.fillStyle='#14262e';g.fillText(c.label,X,Y-20)});
+ var bl=v.s;g.fillStyle='#14262e';g.fillRect(14,h-22,bl,4);g.fillRect(14,h-26,2,12);g.fillRect(14+bl-2,h-26,2,12);
+ g.textAlign='left';g.font='600 12px Vazirmatn,Tahoma,sans-serif';g.fillText('۱ متر',14+bl+8,h-18);
+}
+function render(){draw(ctx,V,W,H,false)}
+function resize(){var d=window.devicePixelRatio||1;W=cv.clientWidth;H=cv.clientHeight;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);V=fit(W,H);render()}
+
+/* UI */
+function refresh(){
+ $('presets').innerHTML='';
+ PRESETS.forEach(function(p,i){var b=document.createElement('button');b.innerHTML=p.name+'<small>برد '+fa(p.range)+' متر، '+fa(p.fov)+' درجه</small>';b.onclick=function(){addCam(p)};$('presets').appendChild(b)});
+ var c=S.cams.filter(function(c){return c.id===S.sel})[0],e=$('editor');
+ if(!c){e.innerHTML='<h2>ویرایش دوربین</h2><span style="color:var(--mut)">یک دوربین را روی پلان انتخاب کنید یا از بالا اضافه کنید.</span>'}
+ else{e.innerHTML='<h2>ویرایش '+c.label+'</h2><div class="grid">'+
+  fld('label','برچسب',c.label,'text')+fld('mp','مگاپیکسل',c.mp,'number')+fld('range','برد (متر)',c.range,'number')+fld('fov','زاویه دید (درجه)',c.fov,'number')+fld('rot','جهت دید (درجه)',Math.round(c.rot),'number')+fld('note','توضیح',c.note,'text')+zfld('z1','شناسایی تا (متر)',c,0)+zfld('z2','تشخیص تا (متر)',c,1)+zfld('z3','مشاهده تا (متر)',c,2)+
+  '</div><p style="font-size:12px;color:var(--mut);margin:8px 0 0">ناحیه‌ها بر اساس تراکم پیکسل (۲۵۰ / ۱۲۵ / ۶۲ پیکسل بر متر)، مگاپیکسل و زاویه دید خودکار محاسبه می‌شوند. برای تعیین دستی فاصله را بنویسید؛ خالی یعنی خودکار.</p><div class="row" style="margin-top:8px"><button class="del" id="rm">حذف دوربین</button></div>';
+  e.querySelectorAll('input').forEach(function(inp){inp.oninput=function(){var k=inp.dataset.k;c[k]=inp.type==='number'?(parseFloat(inp.value)||0):inp.value;if(k==='rot')c.rot=((c.rot%360)+360)%360;render();table();save()}});
+  $('rm').onclick=function(){S.cams=S.cams.filter(function(x){return x!==c});S.sel=null;all()}}
+ table()}
+function zfld(k,l,c,i){return '<label>'+l+'<input data-k="'+k+'" type="number" inputmode="decimal" step="any" value="'+(c[k]||'')+'" placeholder="خودکار: '+fa(autoZ(c)[i])+'"></label>'}
+function fld(k,l,v,t){return '<label>'+l+'<input data-k="'+k+'" type="'+t+'" value="'+String(v).replace(/"/g,'&quot;')+'"'+(t==='number'?' inputmode="decimal" step="any"':'')+'></label>'}
+function groups(){var a={},b={};S.cams.forEach(function(c){var k=fa(c.mp)+' مگاپیکسل';a[k]=(a[k]||0)+1;var t=TYPES[c.type]||c.type;b[t]=(b[t]||0)+1});return{mp:a,type:b}}
+function table(){
+ var g=groups(),h='<span><b>'+fa(S.cams.length)+'</b> دوربین</span>';
+ for(var k in g.mp)h+='<span>'+fa(g.mp[k])+' عدد '+k+'</span>';
+ for(var t in g.type)h+='<span>'+fa(g.type[t])+' '+t+'</span>';
+ $('sum').innerHTML=h;
+ $('tb').innerHTML=S.cams.length?S.cams.map(function(c){return '<tr><td>'+esc(c.label)+'</td><td>'+(TYPES[c.type]||'')+'</td><td>'+fa(c.mp)+'</td><td>'+fa(c.range)+' م</td><td>'+fa(c.fov)+'°</td><td>'+fa(c.x)+'، '+fa(c.y)+'</td><td>'+esc(c.note||'')+'</td><td>'+zoneText(c)+'</td></tr>'}).join(''):'<tr><td colspan="8" style="color:var(--mut)">هنوز دوربینی نچیده‌اید.</td></tr>'}
+function esc(s){return String(s).replace(/[&<>]/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[m]})}
+function all(){render();refresh();save()}
+function addCam(p){
+ var b=bbox(),id='c'+Date.now()+Math.random().toString(36).slice(2,5);
+ var c={id:id,label:'CAM-'+S.n++,type:p.type,mp:p.mp,range:p.range,fov:p.fov,x:+((b.x0+b.x1)/2).toFixed(2),y:+((b.y0+b.y1)/2).toFixed(2),rot:0,note:''};
+ S.cams.push(c);S.sel=id;all()}
+
+/* pointer interaction */
+var drag=null;
+function pos(e){var r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]}
+function hit(m){
+ var c=S.cams.filter(function(c){return c.id===S.sel})[0];
+ if(c){var d=dir(c),hx=sx(V,c.x)+d[0]*34,hy=sy(V,c.y)+d[1]*34;if(Math.hypot(m[0]-hx,m[1]-hy)<16)return{k:'rot',c:c}}
+ for(var i=S.cams.length-1;i>=0;i--){var q=S.cams[i];if(Math.hypot(m[0]-sx(V,q.x),m[1]-sy(V,q.y))<18)return{k:'cam',c:q}}
+ for(var j=0;j<S.pts.length;j++){if(Math.hypot(m[0]-sx(V,S.pts[j][0]),m[1]-sy(V,S.pts[j][1]))<16)return{k:'pt',i:j}}
+ return null}
+cv.addEventListener('pointerdown',function(e){
+ var m=pos(e),h=hit(m);
+ if(!h){S.sel=null;drag=null;render();refresh();return}
+ cv.setPointerCapture(e.pointerId);
+ if(h.k!=='pt'){S.sel=h.c.id;refresh()}
+ drag=h;render()});
+cv.addEventListener('pointermove',function(e){
+ if(!drag)return;var m=pos(e),x=(m[0]-V.ox)/V.s,y=(m[1]-V.oy)/V.s;
+ if(drag.k==='cam'){drag.c.x=+x.toFixed(2);drag.c.y=+y.toFixed(2)}
+ else if(drag.k==='pt'){S.pts[drag.i]=[Math.round(x*10)/10,Math.round(y*10)/10]}
+ else{var a=Math.atan2(m[0]-sx(V,drag.c.x),-(m[1]-sy(V,drag.c.y)))*180/Math.PI;drag.c.rot=Math.round((a+360)%360)}
+ render()});
+function end(){if(drag){var k=drag.k;drag=null;if(k==='pt'){V=fit(W,H)}all()}}
+cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',end);
+cv.addEventListener('dblclick',function(e){
+ var m=pos(e),h=hit(m);
+ if(h&&h.k==='pt'){if(S.pts.length>3){S.pts.splice(h.i,1);V=fit(W,H);all()}return}
+ if(h)return;
+ for(var i=0;i<S.pts.length;i++){var p=S.pts[i],q=S.pts[(i+1)%S.pts.length];
+  var ax=sx(V,p[0]),ay=sy(V,p[1]),bx=sx(V,q[0]),by=sy(V,q[1]),dx=bx-ax,dy=by-ay,t=Math.max(0,Math.min(1,((m[0]-ax)*dx+(m[1]-ay)*dy)/(dx*dx+dy*dy||1)));
+  if(Math.hypot(m[0]-(ax+t*dx),m[1]-(ay+t*dy))<14){S.pts.splice(i+1,0,[Math.round(((m[0]-V.ox)/V.s)*10)/10,Math.round(((m[1]-V.oy)/V.s)*10)/10]);all();return}}});
+$('mk').onclick=function(){var w=Math.max(1,parseFloat($('rw').value)||6),h=Math.max(1,parseFloat($('rh').value)||12);S.pts=[[0,0],[w,0],[w,h],[0,h]];V=fit(W,H);all()};
+$('reset').onclick=function(){S.cams=[];S.sel=null;S.n=1;all()};
+window.addEventListener('resize',resize);
+
+/* export */
+var blobOut=null;
+$('exp').onclick=function(){
+ var p=document.fonts&&document.fonts.load?document.fonts.load('600 14px Vazirmatn'):Promise.resolve();
+ p.catch(function(){}).then(build)};
+function build(){
+ var EW=1200,b=bbox(),bw=Math.max(b.x1-b.x0,1),bh=Math.max(b.y1-b.y0,1),mh=Math.round(Math.max(380,Math.min(900,(EW-96)*bh/bw+96)));
+ var rows=S.cams.length,g=groups(),top=150,tbTop=top+mh+20,th=60+rows*68,sumH=110,EH=tbTop+th+sumH+40;
+ var c=document.createElement('canvas');c.width=EW;c.height=EH;var x=c.getContext('2d');
+ x.fillStyle='#fff';x.fillRect(0,0,EW,EH);
+ x.direction='rtl';x.textBaseline='middle';x.textAlign='right';
+ var F='Vazirmatn,Tahoma,sans-serif';
+ x.fillStyle='#14262e';x.font='800 44px '+F;x.fillText($('title').value||'پروژه دوربین مداربسته',EW-40,48);
+ x.font='400 26px '+F;x.fillStyle='#5b6f78';
+ var cl=$('client').value;x.fillText((cl?'مشتری: '+cl+'   |   ':'')+'ابعاد: '+fa(bw)+' × '+fa(bh)+' متر',EW-40,100);
+ x.textAlign='left';x.fillText(new Date().toLocaleDateString('fa-IR'),40,48);
+ var m=document.createElement('canvas');m.width=EW-80;m.height=mh;
+ var v=fit(m.width,m.height);draw(m.getContext('2d'),v,m.width,m.height,true);
+ x.drawImage(m,40,top);x.strokeStyle='#cdd8dd';x.lineWidth=2;x.strokeRect(40,top,m.width,mh);
+ var cols=[[EW-40,'برچسب'],[EW-190,'نوع'],[EW-310,'مگاپیکسل'],[EW-460,'برد'],[EW-590,'زاویه دید'],[EW-740,'موقعیت'],[EW-940,'توضیح']];
+ x.textAlign='right';x.font='600 22px '+F;x.fillStyle='#5b6f78';
+ cols.forEach(function(k){x.fillText(k[1],k[0],tbTop+20)});
+ x.strokeStyle='#14262e';x.lineWidth=2;x.beginPath();x.moveTo(40,tbTop+42);x.lineTo(EW-40,tbTop+42);x.stroke();
+ x.font='400 22px '+F;
+ S.cams.forEach(function(q,i){var y=tbTop+42+22+i*68,vals=[q.label,TYPES[q.type]||'',fa(q.mp),fa(q.range)+' م',fa(q.fov)+'°',fa(q.x)+'، '+fa(q.y),q.note||''];
+  x.fillStyle='#14262e';vals.forEach(function(t,j){x.fillText(t,cols[j][0],y)});
+  x.font='400 19px '+F;x.fillStyle='#0f6f78';x.fillText(zoneText(q),EW-40,y+28);x.font='400 22px '+F;
+  x.strokeStyle='#e1e8eb';x.lineWidth=1;x.beginPath();x.moveTo(40,y+46);x.lineTo(EW-40,y+46);x.stroke()});
+ var parts=[fa(S.cams.length)+' دوربین'];for(var k in g.mp)parts.push(fa(g.mp[k])+' عدد '+k);
+ x.font='800 26px '+F;x.fillStyle='#e8590c';x.fillText('جمع: '+parts.join('، '),EW-40,tbTop+th+30);
+ x.font='400 20px '+F;x.fillStyle='#5b6f78';x.fillText('رنگ پررنگ‌تر یعنی جزئیات بیشتر (بر اساس تراکم پیکسل: شناسایی ۲۵۰، تشخیص ۱۲۵، مشاهده ۶۲ پیکسل بر متر).',EW-40,tbTop+th+74);
+ c.toBlob(function(bl){blobOut=bl;$('outimg').src=c.toDataURL('image/png');$('modal').classList.add('on')},'image/png')}
+$('close').onclick=function(){$('modal').classList.remove('on')};
+var MANUAL='ارسال مستقیم در این مرورگر مسدود است. روی تصویر بالا نگه دارید (یا راست‌کلیک کنید) و «ذخیره تصویر» یا «کپی» را بزنید، سپس در واتساپ بفرستید.';
+function say(t){$('msg').textContent=t}
+function clip(){
+ try{navigator.clipboard.write([new ClipboardItem({'image/png':blobOut})]).then(function(){say('تصویر کپی شد. در واتساپ یا پیام‌رسان «چسباندن» را بزنید.')},function(){say(MANUAL)})}catch(e){say(MANUAL)}}
+$('copy').onclick=function(){if(blobOut){say('');clip()}};
+$('share').onclick=function(){
+ if(!blobOut)return;say('');
+ var f;try{f=new File([blobOut],'camera-plan.png',{type:'image/png'})}catch(e){}
+ if(f&&navigator.share&&navigator.canShare&&navigator.canShare({files:[f]})){
+  try{navigator.share({files:[f],title:$('title').value||'پلان دوربین'}).catch(function(err){if(!err||err.name!=='AbortError')clip()})}catch(e){clip()}
+ }else clip()};
+
+resize();refresh();
+})();
+</script>
+</body>
+</html>
