@@ -1,4 +1,4 @@
-#Camera Installer Assistant
+Camera Installer Assistant
 
 A small single-file web app (Persian, RTL) that helps CCTV installers sketch a floor plan, place cameras, and send a quick summary to a customer.
 
